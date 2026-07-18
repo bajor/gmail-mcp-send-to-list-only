@@ -16,6 +16,7 @@ from .auth import (
     validate_saved_token,
 )
 from .config import ConfigurationError, load_auth_config, load_runtime_policy
+from .server import run_server
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,6 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     commands.add_parser("auth", help="Run the Google OAuth Desktop flow.")
     commands.add_parser("doctor", help="Check local policy and OAuth configuration.")
     commands.add_parser("logout-local", help="Delete only the local OAuth token.")
+    commands.add_parser("mcp", help="Run the local STDIO MCP server.")
     return parser
 
 
@@ -106,6 +108,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 1 if any(check.status == "FAIL" for check in checks) else 0
         if args.command == "logout-local":
             print("Local OAuth token removed." if logout_local() else "No local token was present.")
+            return 0
+        if args.command == "mcp":
+            run_server()
             return 0
     except (AuthenticationError, ConfigurationError) as error:
         print(f"Error: {error}", file=sys.stderr)
