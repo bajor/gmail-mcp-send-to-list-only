@@ -17,7 +17,10 @@ from dotenv import load_dotenv
 
 SENDER_ENVIRONMENT_VARIABLE = "GMAIL_SENDER_EMAIL"
 ALLOWLIST_ENVIRONMENT_VARIABLE = "GMAIL_ALLOWED_RECIPIENTS_JSON"
+CLIENT_SECRET_ENVIRONMENT_VARIABLE = "GMAIL_CLIENT_SECRET_FILE"
+TOKEN_ENVIRONMENT_VARIABLE = "GMAIL_TOKEN_FILE"
 RECIPIENT_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
+DEFAULT_TOKEN_FILE = Path("~/.config/gmail-mcp-send-to-list-only/token.json")
 
 
 class ConfigurationError(ValueError):
@@ -133,6 +136,22 @@ class RuntimePolicy:
     allowlist: RecipientAllowlist
 
 
+@dataclass(frozen=True, slots=True)
+class AuthConfig:
+    """Resolved local paths used by Gmail OAuth."""
+
+    client_secret_file: Path | None
+    token_file: Path
+
+    def require_client_secret_file(self) -> Path:
+        path = self.client_secret_file
+        if path is None:
+            raise ConfigurationError(f"{CLIENT_SECRET_ENVIRONMENT_VARIABLE} is required.")
+        if not path.is_file():
+            raise ConfigurationError("The configured Gmail client secret is not a file.")
+        return path
+
+
 def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     decoded: dict[str, Any] = {}
     for key, value in pairs:
@@ -142,6 +161,21 @@ def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return decoded
 
 
+def _active_environment(
+    environment: Mapping[str, str] | None,
+    dotenv_path: str | Path | None,
+) -> Mapping[str, str]:
+    if environment is not None:
+        return environment
+    load_dotenv(dotenv_path=dotenv_path, override=False)
+    return os.environ
+
+
+def _configured_path(raw_value: str | None, default: Path | None = None) -> Path | None:
+    path = default if raw_value is None or not raw_value.strip() else Path(raw_value.strip())
+    return path.expanduser().resolve(strict=False) if path is not None else None
+
+
 def load_runtime_policy(
     environment: Mapping[str, str] | None = None,
     *,
@@ -149,11 +183,7 @@ def load_runtime_policy(
 ) -> RuntimePolicy:
     """Load and validate the immutable delivery policy once at startup."""
 
-    if environment is None:
-        load_dotenv(dotenv_path=dotenv_path, override=False)
-        active_environment: Mapping[str, str] = os.environ
-    else:
-        active_environment = environment
+    active_environment = _active_environment(environment, dotenv_path)
 
     raw_sender = active_environment.get(SENDER_ENVIRONMENT_VARIABLE)
     if raw_sender is None:
@@ -165,3 +195,22 @@ def load_runtime_policy(
         sender=EmailAddress.parse(raw_sender, field_name=SENDER_ENVIRONMENT_VARIABLE),
         allowlist=RecipientAllowlist.from_json(raw_allowlist),
     )
+
+
+def load_auth_config(
+    environment: Mapping[str, str] | None = None,
+    *,
+    dotenv_path: str | Path | None = None,
+) -> AuthConfig:
+    """Load OAuth paths while allowing doctor to report a missing client secret."""
+
+    active_environment = _active_environment(environment, dotenv_path)
+    client_secret_file = _configured_path(
+        active_environment.get(CLIENT_SECRET_ENVIRONMENT_VARIABLE)
+    )
+    token_file = _configured_path(
+        active_environment.get(TOKEN_ENVIRONMENT_VARIABLE),
+        DEFAULT_TOKEN_FILE,
+    )
+    assert token_file is not None
+    return AuthConfig(client_secret_file=client_secret_file, token_file=token_file)
