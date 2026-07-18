@@ -13,7 +13,7 @@ from gmail_mcp_send_to_list_only.config import (
 
 def _environment(**overrides: str) -> dict[str, str]:
     environment = {
-        "GMAIL_SENDER_EMAIL": "sender@gmail.com",
+        "GMAIL_SENDER_EMAIL": "sender@example.com",
         "GMAIL_ALLOWED_RECIPIENTS_JSON": (
             '{"bob":"bob@example.com","alice":"alice@example.com"}'
         ),
@@ -25,7 +25,7 @@ def _environment(**overrides: str) -> dict[str, str]:
 def test_load_runtime_policy_returns_sorted_frozen_domain_values() -> None:
     policy = load_runtime_policy(_environment())
 
-    assert policy.sender == EmailAddress("sender@gmail.com")
+    assert policy.sender == EmailAddress("sender@example.com")
     assert [item.recipient_id.value for item in policy.allowlist.recipients] == ["alice", "bob"]
     assert [item.address.value for item in policy.allowlist.recipients] == [
         "alice@example.com",

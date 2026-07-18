@@ -42,7 +42,7 @@ class EmailAddress:
             raise ConfigurationError(f"{field_name} must not contain control characters.")
         try:
             parsed_address = Address(addr_spec=raw_value)
-        except (HeaderDefect, HeaderParseError, ValueError):
+        except (HeaderDefect, HeaderParseError, IndexError, ValueError):
             raise ConfigurationError(
                 f"{field_name} must be one valid email address without a display name."
             ) from None
