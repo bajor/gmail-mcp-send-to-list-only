@@ -64,7 +64,7 @@ The project runs on Linux and macOS. The commands below use a POSIX shell.
 Clone the repository and create an isolated virtual environment:
 
 ```bash
-git clone git@github.com:bajor/gmail-mcp-send-to-list-only.git
+git clone https://github.com/bajor/gmail-mcp-send-to-list-only.git
 cd gmail-mcp-send-to-list-only
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
