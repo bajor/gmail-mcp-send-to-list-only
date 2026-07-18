@@ -17,6 +17,9 @@ dependencies = [
   "python-dotenv>=1.0,<2",
 ]
 
+[project.scripts]
+gmail-mcp-send-to-list-only = "gmail_mcp_send_to_list_only.cli:main"
+
 [project.optional-dependencies]
 dev = [
   "mypy>=1.16,<2",
