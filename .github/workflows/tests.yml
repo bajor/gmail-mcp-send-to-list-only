@@ -38,5 +38,5 @@ jobs:
       - name: Check configuration diagnostics
         env:
           GMAIL_SENDER_EMAIL: sender@example.com
-          GMAIL_ALLOWED_RECIPIENTS_JSON: '{"alice":"alice@example.com"}'
+          GMAIL_ALLOSWED_RECIPENTS: alice@example.com
         run: .venv/bin/python -m gmail_mcp_send_to_list_only doctor

@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.1.1 - 2026-07-19
+
+- Replace the JSON recipient allowlist with comma-separated `GMAIL_ALLOSWED_RECIPENTS` addresses.
+- Generate `recipient_N` IDs from the configured address order while keeping raw addresses out of MCP send input.
+
 ## 0.1.0 - 2026-07-18
 
 - Add a fail-closed startup allowlist addressed only through stable recipient IDs.

@@ -3,7 +3,7 @@
 A local Python [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that
 sends plain-text Gmail messages only to a fixed startup allowlist.
 
-The MCP caller selects stable recipient IDs such as `alice`; it never supplies email
+The MCP caller selects generated recipient IDs such as `recipient_1`; it never supplies email
 addresses. The server rejects an empty selection, duplicate IDs, unknown IDs, extra headers,
 and any serialized message whose `From` or `To` addresses differ from the startup policy.
 
@@ -12,7 +12,7 @@ and any serialized message whose `From` or `To` addresses differ from the startu
 For an unchanged process started from trusted code and trusted configuration, every Gmail API
 send request produced by this server has exactly these properties:
 
-- every direct recipient is an address in `GMAIL_ALLOWED_RECIPIENTS_JSON`;
+- every direct recipient is an address in `GMAIL_ALLOSWED_RECIPENTS`;
 - the caller cannot provide an address, `Cc`, `Bcc`, sender, header, or raw MIME value;
 - the MIME message has one `From`, one visible `To`, one `Subject`, and one plain-text body;
 - the final serialized MIME is parsed and audited before it can reach the Gmail client;
@@ -113,16 +113,17 @@ Set these variables before starting the MCP client:
 export GMAIL_CLIENT_SECRET_FILE=/home/USERNAME/.config/gmail-mcp-send-to-list-only/client_secret.json
 export GMAIL_TOKEN_FILE=/home/USERNAME/.config/gmail-mcp-send-to-list-only/token.json
 export GMAIL_SENDER_EMAIL=sender@example.com
-export GMAIL_ALLOWED_RECIPIENTS_JSON='{"alice":"alice@example.com","bob":"bob@example.com"}'
+export GMAIL_ALLOSWED_RECIPENTS=alice@example.com,bob@example.com
 ```
 
 Replace every example value locally. `GMAIL_SENDER_EMAIL` must be the Gmail address used during
-authorization. `GMAIL_ALLOWED_RECIPIENTS_JSON` must be a non-empty JSON object whose keys are
-caller-facing IDs and whose values are the only permitted direct email addresses.
+authorization. `GMAIL_ALLOSWED_RECIPENTS` must be a non-empty comma-separated list of the only
+permitted direct email addresses.
 
-Recipient IDs must start with a lowercase ASCII letter and contain only lowercase letters,
-digits, underscores, or hyphens. The maximum length is 64 characters. Addresses must be unique,
-ASCII addr-spec values without display names or surrounding spaces.
+Recipient IDs are generated at startup as `recipient_1`, `recipient_2`, and so on in the same
+order as the comma-separated addresses. Reordering the list changes which address each generated
+ID resolves to. Addresses must be unique ASCII addr-spec values without display names. Spaces
+around commas are ignored.
 
 The process loads and validates the complete policy once at startup. Changing the parent shell or
 client configuration has no effect on a running MCP server. Restart the MCP client after any
@@ -202,7 +203,7 @@ values that were exported before Codex started; it does not store the values in 
 command = "/ABSOLUTE/PATH/gmail-mcp-send-to-list-only/.venv/bin/python"
 args = ["-m", "gmail_mcp_send_to_list_only", "mcp"]
 cwd = "/ABSOLUTE/PATH/gmail-mcp-send-to-list-only"
-env_vars = ["GMAIL_CLIENT_SECRET_FILE", "GMAIL_TOKEN_FILE", "GMAIL_SENDER_EMAIL", "GMAIL_ALLOWED_RECIPIENTS_JSON"]
+env_vars = ["GMAIL_CLIENT_SECRET_FILE", "GMAIL_TOKEN_FILE", "GMAIL_SENDER_EMAIL", "GMAIL_ALLOSWED_RECIPENTS"]
 enabled = true
 required = true
 startup_timeout_sec = 20
@@ -260,7 +261,7 @@ Input:
 
 ```json
 {
-  "recipient_ids": ["alice"],
+  "recipient_ids": ["recipient_1"],
   "subject": "Example subject",
   "body_text": "Example plain-text body."
 }
@@ -280,7 +281,7 @@ Gmail and transport failures use sanitized errors and do not expose OAuth secret
 To change the recipient set:
 
 1. Stop or restart the MCP client so the old process cannot send.
-2. Edit `GMAIL_ALLOWED_RECIPIENTS_JSON` in the environment that starts the MCP client.
+2. Edit `GMAIL_ALLOSWED_RECIPENTS` in the environment that starts the MCP client.
 3. Run `doctor` and confirm the recipient count.
 4. Restart the MCP client.
 5. Call `gmail_list_allowed_recipients` and verify every ID and address before sending.
@@ -291,16 +292,16 @@ before creating a replacement token.
 
 ## Troubleshooting
 
-- **Server fails to start:** run `doctor`; fix the reported sender or allowlist error. JSON must
-  be a single non-empty object with unique IDs and unique addresses.
+- **Server fails to start:** run `doctor`; fix the reported sender or allowlist error. The
+  allowlist must be one non-empty comma-separated list with unique addresses.
 - **Client secret warning:** set `GMAIL_CLIENT_SECRET_FILE` to an existing Desktop client JSON
   file outside the repository.
 - **Token missing or expired:** run `auth`. If the stored scopes differ, run `logout-local` and
   then `auth`; the application refuses broader or different saved scopes.
 - **Token permission failure:** run `chmod 600` on the token. The parent configuration directory
   should use mode `0700`.
-- **Unknown recipient ID:** call `gmail_list_allowed_recipients`; callers must use IDs exactly as
-  listed and cannot submit an address instead.
+- **Unknown recipient ID:** call `gmail_list_allowed_recipients`; callers must use generated IDs
+  exactly as listed and cannot submit an address instead.
 - **Send error says status may be unknown:** inspect Gmail's Sent folder before deciding whether
   to send a new message. The application deliberately performs no automatic retry.
 - **MCP client cannot initialize the server:** use absolute paths, start the MCP client from an
