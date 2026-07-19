@@ -7,6 +7,17 @@ The MCP caller selects generated recipient IDs such as `recipient_1`; it never s
 addresses. The server rejects an empty selection, duplicate IDs, unknown IDs, extra headers,
 and any serialized message whose `From` or `To` addresses differ from the startup policy.
 
+## Linux VPS / headless deployment
+
+> [!IMPORTANT]
+> **Running this on a Linux VPS or other headless server over SSH?**
+> Follow the **[Linux VPS deployment and OAuth guide](docs/linux-vps-setup.md)** before running
+> `auth`. It covers SSH-tunneled OAuth, persistent `token.json` storage, automatic token refresh,
+> persistent environment configuration, and VPS-specific troubleshooting.
+
+The normal Desktop OAuth command expects a browser-accessible localhost callback. On a headless
+VPS, use the dedicated guide instead of assuming that `auth` can open a browser on the server.
+
 ## Security guarantee and boundary
 
 For an unchanged process started from trusted code and trusted configuration, every Gmail API
@@ -131,6 +142,11 @@ intentional allowlist change. An invalid or empty policy prevents the server fro
 
 ## 4. Authorize the one Gmail account
 
+> [!NOTE]
+> On a Linux VPS or other headless host, use the
+> **[Linux VPS deployment and OAuth guide](docs/linux-vps-setup.md)**. It shows how to complete the
+> localhost OAuth callback through an SSH tunnel and keep the resulting token on the VPS.
+
 Run the local Desktop OAuth flow:
 
 ```bash
@@ -244,7 +260,7 @@ OpenCode from an environment where the four `GMAIL_*` variables are already set:
 }
 ```
 
-Restart OpenCode after editing its configuration or changing the exported variables.
+Restart OpenCode after editing MCP configuration or changing the exported variables.
 
 ## MCP tools
 
