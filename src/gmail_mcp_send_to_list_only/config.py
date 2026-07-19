@@ -13,8 +13,6 @@ from email.headerregistry import Address
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
-
 SENDER_ENVIRONMENT_VARIABLE = "GMAIL_SENDER_EMAIL"
 ALLOWLIST_ENVIRONMENT_VARIABLE = "GMAIL_ALLOWED_RECIPIENTS_JSON"
 CLIENT_SECRET_ENVIRONMENT_VARIABLE = "GMAIL_CLIENT_SECRET_FILE"
@@ -163,11 +161,9 @@ def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 def _active_environment(
     environment: Mapping[str, str] | None,
-    dotenv_path: str | Path | None,
 ) -> Mapping[str, str]:
     if environment is not None:
         return environment
-    load_dotenv(dotenv_path=dotenv_path, override=False)
     return os.environ
 
 
@@ -178,12 +174,10 @@ def _configured_path(raw_value: str | None, default: Path | None = None) -> Path
 
 def load_runtime_policy(
     environment: Mapping[str, str] | None = None,
-    *,
-    dotenv_path: str | Path | None = None,
 ) -> RuntimePolicy:
     """Load and validate the immutable delivery policy once at startup."""
 
-    active_environment = _active_environment(environment, dotenv_path)
+    active_environment = _active_environment(environment)
 
     raw_sender = active_environment.get(SENDER_ENVIRONMENT_VARIABLE)
     if raw_sender is None:
@@ -199,12 +193,10 @@ def load_runtime_policy(
 
 def load_auth_config(
     environment: Mapping[str, str] | None = None,
-    *,
-    dotenv_path: str | Path | None = None,
 ) -> AuthConfig:
     """Load OAuth paths while allowing doctor to report a missing client secret."""
 
-    active_environment = _active_environment(environment, dotenv_path)
+    active_environment = _active_environment(environment)
     client_secret_file = _configured_path(
         active_environment.get(CLIENT_SECRET_ENVIRONMENT_VARIABLE)
     )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -43,6 +44,20 @@ def test_required_environment_values_are_fail_closed(missing_name: str) -> None:
 
     with pytest.raises(ConfigurationError, match=f"{missing_name} is required"):
         load_runtime_policy(environment)
+
+
+def test_runtime_policy_ignores_dotenv_file(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("GMAIL_SENDER_EMAIL", raising=False)
+    monkeypatch.delenv("GMAIL_ALLOWED_RECIPIENTS_JSON", raising=False)
+    (tmp_path / ".env").write_text(
+        "GMAIL_SENDER_EMAIL=sender@example.com\n"
+        'GMAIL_ALLOWED_RECIPIENTS_JSON={"alice":"alice@example.com"}\n',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigurationError, match="GMAIL_SENDER_EMAIL is required"):
+        load_runtime_policy()
 
 
 @pytest.mark.parametrize(
