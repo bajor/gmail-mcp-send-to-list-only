@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.1.2 - 2026-07-19
+
+- Add a dedicated Linux VPS/headless deployment guide with SSH-tunneled OAuth authorization.
+- Document persistent `token.json` storage, automatic refresh behavior, and VPS environment setup.
+- Link the VPS deployment guide prominently from the README.
+
 ## 0.1.1 - 2026-07-19
 
 - Replace the JSON recipient allowlist with comma-separated `GMAIL_ALLOSWED_RECIPENTS` addresses.

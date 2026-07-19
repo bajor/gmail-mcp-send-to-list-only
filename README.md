@@ -7,6 +7,18 @@ The MCP caller selects generated recipient IDs such as `recipient_1`; it never s
 addresses. The server rejects an empty selection, duplicate IDs, unknown IDs, extra headers,
 and any serialized message whose `From` or `To` addresses differ from the startup policy.
 
+## Linux VPS / headless deployment
+
+> [!IMPORTANT]
+> **Running this on a Linux VPS or other headless server over SSH?**
+> Follow the **[Linux VPS deployment and OAuth guide](docs/linux-vps-setup.md)** before running
+> `auth`. It covers SSH-tunneled OAuth, persistent `token.json` storage, automatic token refresh,
+> persistent environment configuration, and VPS-specific troubleshooting.
+
+The default Desktop OAuth flow starts a localhost callback and attempts to open a browser. On a
+headless VPS, use the dedicated guide so the callback is carried through an SSH tunnel and the
+resulting token is stored directly on the server.
+
 ## Security guarantee and boundary
 
 For an unchanged process started from trusted code and trusted configuration, every Gmail API
@@ -130,6 +142,11 @@ client configuration has no effect on a running MCP server. Restart the MCP clie
 intentional allowlist change. An invalid or empty policy prevents the server from starting.
 
 ## 4. Authorize the one Gmail account
+
+> [!NOTE]
+> On a Linux VPS or other headless host, use the
+> **[Linux VPS deployment and OAuth guide](docs/linux-vps-setup.md)**. It shows how to complete the
+> localhost OAuth callback through an SSH tunnel and keep the resulting token on the VPS.
 
 Run the local Desktop OAuth flow:
 

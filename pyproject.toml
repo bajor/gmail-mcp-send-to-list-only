@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gmail-mcp-send-to-list-only"
-version = "0.1.1"
+version = "0.1.2"
 description = "Local Gmail MCP that sends only to a fixed recipient allowlist"
 readme = "README.md"
 requires-python = ">=3.11"
