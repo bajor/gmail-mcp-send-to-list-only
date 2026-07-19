@@ -51,7 +51,7 @@ Set the values in the shell, service manager, or wrapper that starts Claude Code
 ```bash
 export GMAIL_CLIENT_SECRET_FILE="$HOME/.config/gmail-mcp-send-to-list-only/client_secret.json"
 export GMAIL_TOKEN_FILE="$HOME/.config/gmail-mcp-send-to-list-only/token.json"
-export GMAIL_SENDER_EMAIL='sender@gmail.com'
+export GMAIL_SENDER_EMAIL='sender@example.com'
 export GMAIL_ALLOSWED_RECIPENTS='alice@example.com,bob@example.com'
 ```
 
@@ -166,7 +166,7 @@ For an interactive session:
 ```bash
 export GMAIL_CLIENT_SECRET_FILE="$HOME/.config/gmail-mcp-send-to-list-only/client_secret.json"
 export GMAIL_TOKEN_FILE="$HOME/.config/gmail-mcp-send-to-list-only/token.json"
-export GMAIL_SENDER_EMAIL='sender@gmail.com'
+export GMAIL_SENDER_EMAIL='sender@example.com'
 export GMAIL_ALLOSWED_RECIPENTS='alice@example.com,bob@example.com'
 
 codex
