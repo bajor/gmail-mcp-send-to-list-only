@@ -26,7 +26,7 @@ does not provide an OAuth scope that restricts sending to particular addresses. 
 
 | Inside the guarantee | Outside the guarantee |
 | --- | --- |
-| Untrusted MCP tool arguments and model-generated content | An attacker who can modify the code, Python environment, `.env`, or process memory |
+| Untrusted MCP tool arguments and model-generated content | An attacker who can modify the code, Python environment, process environment, or process memory |
 | Header injection attempts through subject or body inputs | Direct use or theft of the OAuth token or OAuth client secret |
 | Unknown, duplicate, or empty recipient-ID selections | Forwarding, aliases, or group expansion performed after delivery to an allowed address |
 | Attempts to add `Cc`, `Bcc`, HTML, attachments, or arbitrary MIME through MCP | Compromise of Gmail, Google Cloud, the host, or an allowed recipient mailbox |
@@ -55,7 +55,7 @@ Gmail Sent folder manually first.
 - one Google account with Gmail enabled;
 - one Google Cloud project with the Gmail API enabled;
 - a Desktop OAuth client for that project; and
-- local filesystem permissions that protect the OAuth files and `.env`.
+- local filesystem permissions that protect the OAuth files and MCP client configuration.
 
 The project runs on Linux and macOS. The commands below use a POSIX shell.
 
@@ -102,16 +102,13 @@ filenames, but filesystem permissions and operator discipline remain required.
 
 ## 3. Configure the immutable startup policy
 
-Create the local environment file:
+The server reads configuration from the process environment supplied by the MCP client or shell.
+It does not load a repository `.env` file. This keeps startup behavior identical for any local
+STDIO MCP launcher, including Claude Code, Codex, OpenCode, and custom clients.
+
+Set these variables for the server process:
 
 ```bash
-cp .env.example .env
-chmod 600 .env
-```
-
-Edit `.env`:
-
-```dotenv
 GMAIL_CLIENT_SECRET_FILE=/home/USERNAME/.config/gmail-mcp-send-to-list-only/client_secret.json
 GMAIL_TOKEN_FILE=/home/USERNAME/.config/gmail-mcp-send-to-list-only/token.json
 GMAIL_SENDER_EMAIL=sender@example.com
@@ -126,9 +123,9 @@ Recipient IDs must start with a lowercase ASCII letter and contain only lowercas
 digits, underscores, or hyphens. The maximum length is 64 characters. Addresses must be unique,
 ASCII addr-spec values without display names or surrounding spaces.
 
-The process loads and validates the complete policy once at startup. Changing `.env` has no
-effect on a running MCP server. Restart the MCP client after any intentional allowlist change.
-An invalid or empty policy prevents the server from starting.
+The process loads and validates the complete policy once at startup. Changing the parent shell or
+client configuration has no effect on a running MCP server. Restart the MCP client after any
+intentional allowlist change. An invalid or empty policy prevents the server from starting.
 
 ## 4. Authorize the one Gmail account
 
@@ -161,10 +158,46 @@ To remove only the configured local token:
 This does not revoke access at Google. Revoke the app separately in the Google account security
 settings when the token may have been exposed.
 
-## 5. Connect Codex
+## 5. Connect an MCP client
+
+Use a local STDIO MCP configuration that starts this repository's Python entry point and passes the
+same four `GMAIL_*` variables to the server process. Keep approval prompts enabled for
+`gmail_send_email`; sending is external and non-idempotent.
+
+You can also start the server manually from a shell that already exports the variables:
+
+```bash
+.venv/bin/gmail-mcp-send-to-list-only mcp
+```
+
+Do not type into that process: standard output carries the MCP protocol.
+
+### Claude Code
+
+Claude Code supports local STDIO servers in user, project, or local scope. Replace every absolute
+path and example value below:
+
+```bash
+claude mcp add-json --scope user gmail-send-to-list-only '{
+  "type": "stdio",
+  "command": "/ABSOLUTE/PATH/gmail-mcp-send-to-list-only/.venv/bin/python",
+  "args": ["-m", "gmail_mcp_send_to_list_only", "mcp"],
+  "cwd": "/ABSOLUTE/PATH/gmail-mcp-send-to-list-only",
+  "env": {
+    "GMAIL_CLIENT_SECRET_FILE": "/home/USERNAME/.config/gmail-mcp-send-to-list-only/client_secret.json",
+    "GMAIL_TOKEN_FILE": "/home/USERNAME/.config/gmail-mcp-send-to-list-only/token.json",
+    "GMAIL_SENDER_EMAIL": "sender@example.com",
+    "GMAIL_ALLOWED_RECIPIENTS_JSON": "{\"alice\":\"alice@example.com\",\"bob\":\"bob@example.com\"}"
+  }
+}'
+```
+
+Restart Claude Code after editing MCP configuration.
+
+### Codex
 
 Codex supports local STDIO servers in `~/.codex/config.toml` or a trusted project's
-`.codex/config.toml`. Replace both absolute paths below:
+`.codex/config.toml`. Replace every absolute path and example value below:
 
 ```toml
 [mcp_servers.gmail-send-to-list-only]
@@ -177,6 +210,12 @@ startup_timeout_sec = 20
 tool_timeout_sec = 120
 enabled_tools = ["gmail_list_allowed_recipients", "gmail_send_email"]
 default_tools_approval_mode = "writes"
+
+[mcp_servers.gmail-send-to-list-only.env]
+GMAIL_CLIENT_SECRET_FILE = "/home/USERNAME/.config/gmail-mcp-send-to-list-only/client_secret.json"
+GMAIL_TOKEN_FILE = "/home/USERNAME/.config/gmail-mcp-send-to-list-only/token.json"
+GMAIL_SENDER_EMAIL = "sender@example.com"
+GMAIL_ALLOWED_RECIPIENTS_JSON = "{\"alice\":\"alice@example.com\",\"bob\":\"bob@example.com\"}"
 ```
 
 `writes` asks for approval before the send tool because the server marks it as non-read-only;
@@ -184,13 +223,38 @@ the list tool remains read-only. Keep approval prompts enabled. Restart Codex af
 configuration. See the current [Codex MCP configuration reference](https://learn.chatgpt.com/docs/extend/mcp.md)
 for client-specific setup details.
 
-You can also start the server manually for an MCP client that launches its own STDIO process:
+### OpenCode
 
-```bash
-.venv/bin/gmail-mcp-send-to-list-only mcp
+OpenCode supports local MCP servers in `opencode.json`, `opencode.jsonc`, or the global
+`~/.config/opencode/opencode.jsonc`. Replace every absolute path and example value below:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "gmail-send-to-list-only": {
+      "type": "local",
+      "command": [
+        "/ABSOLUTE/PATH/gmail-mcp-send-to-list-only/.venv/bin/python",
+        "-m",
+        "gmail_mcp_send_to_list_only",
+        "mcp"
+      ],
+      "cwd": "/ABSOLUTE/PATH/gmail-mcp-send-to-list-only",
+      "environment": {
+        "GMAIL_CLIENT_SECRET_FILE": "/home/USERNAME/.config/gmail-mcp-send-to-list-only/client_secret.json",
+        "GMAIL_TOKEN_FILE": "/home/USERNAME/.config/gmail-mcp-send-to-list-only/token.json",
+        "GMAIL_SENDER_EMAIL": "sender@example.com",
+        "GMAIL_ALLOWED_RECIPIENTS_JSON": "{\"alice\":\"alice@example.com\",\"bob\":\"bob@example.com\"}"
+      },
+      "enabled": true,
+      "timeout": 120000
+    }
+  }
+}
 ```
 
-Do not type into that process: standard output carries the MCP protocol.
+Restart OpenCode after editing its configuration.
 
 ## MCP tools
 
@@ -227,7 +291,7 @@ Gmail and transport failures use sanitized errors and do not expose OAuth secret
 To change the recipient set:
 
 1. Stop or restart the MCP client so the old process cannot send.
-2. Edit `GMAIL_ALLOWED_RECIPIENTS_JSON` in `.env`.
+2. Edit `GMAIL_ALLOWED_RECIPIENTS_JSON` in the MCP client's environment configuration.
 3. Run `doctor` and confirm the recipient count.
 4. Restart the MCP client.
 5. Call `gmail_list_allowed_recipients` and verify every ID and address before sending.
@@ -250,8 +314,9 @@ before creating a replacement token.
   listed and cannot submit an address instead.
 - **Send error says status may be unknown:** inspect Gmail's Sent folder before deciding whether
   to send a new message. The application deliberately performs no automatic retry.
-- **Codex cannot initialize the server:** use absolute paths, keep `cwd` set to the repository so
-  `.env` is found, and run the `mcp` command manually to expose startup errors.
+- **MCP client cannot initialize the server:** use absolute paths, pass all required `GMAIL_*`
+  environment variables to the server process, and run the `mcp` command manually to expose
+  startup errors.
 
 ## Development and verification
 
