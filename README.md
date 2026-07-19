@@ -261,7 +261,7 @@ OpenCode from an environment where the four `GMAIL_*` variables are already set:
 }
 ```
 
-Restart OpenCode after editing MCP configuration or changing the exported variables.
+Restart OpenCode after editing its configuration or changing the exported variables.
 
 ## MCP tools
 
