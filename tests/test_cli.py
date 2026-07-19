@@ -8,7 +8,7 @@ from gmail_mcp_send_to_list_only.cli import main
 def test_doctor_reports_missing_runtime_policy(monkeypatch, tmp_path: Path, capsys) -> None:
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("GMAIL_SENDER_EMAIL", raising=False)
-    monkeypatch.delenv("GMAIL_ALLOWED_RECIPIENTS_JSON", raising=False)
+    monkeypatch.delenv("GMAIL_ALLOSWED_RECIPENTS", raising=False)
     monkeypatch.setenv("GMAIL_TOKEN_FILE", str(tmp_path / "token.json"))
 
     assert main(["doctor"]) == 1

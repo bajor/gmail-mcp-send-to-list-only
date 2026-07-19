@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import unicodedata
@@ -11,10 +10,9 @@ from dataclasses import dataclass
 from email.errors import HeaderDefect, HeaderParseError
 from email.headerregistry import Address
 from pathlib import Path
-from typing import Any
 
 SENDER_ENVIRONMENT_VARIABLE = "GMAIL_SENDER_EMAIL"
-ALLOWLIST_ENVIRONMENT_VARIABLE = "GMAIL_ALLOWED_RECIPIENTS_JSON"
+ALLOWLIST_ENVIRONMENT_VARIABLE = "GMAIL_ALLOSWED_RECIPENTS"
 CLIENT_SECRET_ENVIRONMENT_VARIABLE = "GMAIL_CLIENT_SECRET_FILE"
 TOKEN_ENVIRONMENT_VARIABLE = "GMAIL_TOKEN_FILE"
 RECIPIENT_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
@@ -89,26 +87,16 @@ class RecipientAllowlist:
     recipients: tuple[AllowedRecipient, ...]
 
     @classmethod
-    def from_json(cls, raw_json: str) -> RecipientAllowlist:
-        if not raw_json.strip():
+    def from_comma_separated_addresses(cls, raw_addresses: str) -> RecipientAllowlist:
+        if not raw_addresses.strip():
             raise ConfigurationError(f"{ALLOWLIST_ENVIRONMENT_VARIABLE} must not be empty.")
-        try:
-            decoded = json.loads(raw_json, object_pairs_hook=_reject_duplicate_json_keys)
-        except json.JSONDecodeError:
-            raise ConfigurationError(
-                f"{ALLOWLIST_ENVIRONMENT_VARIABLE} must be a valid JSON object."
-            ) from None
-        if not isinstance(decoded, dict) or not decoded:
-            raise ConfigurationError(
-                f"{ALLOWLIST_ENVIRONMENT_VARIABLE} must be a non-empty JSON object."
-            )
 
         recipients: list[AllowedRecipient] = []
         address_owners: dict[str, str] = {}
-        for raw_id, raw_address in sorted(decoded.items()):
-            recipient_id = RecipientId.parse(raw_id)
+        for index, raw_address in enumerate(raw_addresses.split(","), start=1):
+            recipient_id = RecipientId.parse(f"recipient_{index}")
             address = EmailAddress.parse(
-                raw_address,
+                raw_address.strip(),
                 field_name=f"Recipient {recipient_id.value!r}",
             )
             canonical_address = address.value.casefold()
@@ -150,15 +138,6 @@ class AuthConfig:
         return path
 
 
-def _reject_duplicate_json_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-    decoded: dict[str, Any] = {}
-    for key, value in pairs:
-        if key in decoded:
-            raise ConfigurationError(f"Duplicate recipient ID in allowlist JSON: {key!r}.")
-        decoded[key] = value
-    return decoded
-
-
 def _active_environment(
     environment: Mapping[str, str] | None,
 ) -> Mapping[str, str]:
@@ -187,7 +166,7 @@ def load_runtime_policy(
         raise ConfigurationError(f"{ALLOWLIST_ENVIRONMENT_VARIABLE} is required.")
     return RuntimePolicy(
         sender=EmailAddress.parse(raw_sender, field_name=SENDER_ENVIRONMENT_VARIABLE),
-        allowlist=RecipientAllowlist.from_json(raw_allowlist),
+        allowlist=RecipientAllowlist.from_comma_separated_addresses(raw_allowlist),
     )
 
 

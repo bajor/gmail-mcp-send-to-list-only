@@ -20,15 +20,15 @@ def _policy():
     return load_runtime_policy(
         {
             "GMAIL_SENDER_EMAIL": "sender@example.com",
-            "GMAIL_ALLOWED_RECIPIENTS_JSON": (
-                '{"alice":"alice@example.com","bob":"bob@example.com"}'
-            ),
+            "GMAIL_ALLOSWED_RECIPENTS": "alice@example.com,bob@example.com",
         }
     )
 
 
 def test_create_audited_message_uses_only_selected_to_addresses() -> None:
-    audited = create_audited_message(_policy(), ["bob", "alice"], "Hello", "Plain body")
+    audited = create_audited_message(
+        _policy(), ["recipient_2", "recipient_1"], "Hello", "Plain body"
+    )
     raw_message = base64.urlsafe_b64decode(audited.raw_base64url)
     parsed = BytesParser(policy=policy.default).parsebytes(raw_message)
 
@@ -39,10 +39,10 @@ def test_create_audited_message_uses_only_selected_to_addresses() -> None:
     assert parsed["Cc"] is None
     assert parsed["Bcc"] is None
     assert parsed.get_content_type() == "text/plain"
-    assert audited.recipient_ids == ("bob", "alice")
+    assert audited.recipient_ids == ("recipient_2", "recipient_1")
 
 
-@pytest.mark.parametrize("recipient_ids", [[], ["unknown"], ["alice", "alice"]])
+@pytest.mark.parametrize("recipient_ids", [[], ["unknown"], ["recipient_1", "recipient_1"]])
 def test_invalid_recipient_selections_fail_before_composition(recipient_ids: list[str]) -> None:
     with pytest.raises(DeliveryPolicyError):
         create_audited_message(_policy(), recipient_ids, "Subject", "Body")
@@ -50,13 +50,15 @@ def test_invalid_recipient_selections_fail_before_composition(recipient_ids: lis
 
 def test_subject_header_injection_is_rejected() -> None:
     with pytest.raises(DeliveryPolicyError, match="CR, LF, or NUL"):
-        create_audited_message(_policy(), ["alice"], "Hello\r\nBcc: evil@example.com", "Body")
+        create_audited_message(
+            _policy(), ["recipient_1"], "Hello\r\nBcc: evil@example.com", "Body"
+        )
 
 
 def test_header_like_body_text_remains_body_text() -> None:
     audited = create_audited_message(
         _policy(),
-        ["alice"],
+        ["recipient_1"],
         "Hello",
         "First line\nBcc: evil@example.com\nLast line",
     )
@@ -70,7 +72,7 @@ def test_header_like_body_text_remains_body_text() -> None:
 
 def test_final_audit_rejects_added_bcc_header() -> None:
     runtime_policy = _policy()
-    selection = resolve_recipients(runtime_policy.allowlist, ["alice"])
+    selection = resolve_recipients(runtime_policy.allowlist, ["recipient_1"])
     message = EmailMessage(policy=policy.SMTP)
     message["From"] = "sender@example.com"
     message["To"] = "alice@example.com"

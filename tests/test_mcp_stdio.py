@@ -20,7 +20,7 @@ async def _exercise_stdio_server() -> None:
     environment.update(
         {
             "GMAIL_SENDER_EMAIL": "sender@example.com",
-            "GMAIL_ALLOWED_RECIPIENTS_JSON": '{"alice":"alice@example.com"}',
+            "GMAIL_ALLOSWED_RECIPENTS": "alice@example.com",
         }
     )
     parameters = StdioServerParameters(
@@ -42,7 +42,7 @@ async def _exercise_stdio_server() -> None:
         listed = await session.call_tool("gmail_list_allowed_recipients", {})
         assert listed.isError is False
         assert listed.structuredContent == {
-            "result": [{"id": "alice", "address": "alice@example.com"}]
+            "result": [{"id": "recipient_1", "address": "alice@example.com"}]
         }
 
         rejected = await session.call_tool(
@@ -53,12 +53,12 @@ async def _exercise_stdio_server() -> None:
 
         sent = await session.call_tool(
             "gmail_send_email",
-            {"recipient_ids": ["alice"], "subject": "Hello", "body_text": "Body"},
+            {"recipient_ids": ["recipient_1"], "subject": "Hello", "body_text": "Body"},
         )
         assert sent.isError is False
         assert sent.structuredContent == {
             "gmail_message_id": "e2e-message",
             "gmail_thread_id": "e2e-thread",
-            "recipient_ids": ["alice"],
+            "recipient_ids": ["recipient_1"],
             "recipient_addresses": ["alice@example.com"],
         }

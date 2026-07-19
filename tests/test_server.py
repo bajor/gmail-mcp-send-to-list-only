@@ -14,9 +14,7 @@ def _policy():
     return load_runtime_policy(
         {
             "GMAIL_SENDER_EMAIL": "sender@example.com",
-            "GMAIL_ALLOWED_RECIPIENTS_JSON": (
-                '{"alice":"alice@example.com","bob":"bob@example.com"}'
-            ),
+            "GMAIL_ALLOSWED_RECIPENTS": "alice@example.com,bob@example.com",
         }
     )
 
@@ -61,8 +59,8 @@ def test_server_lists_configured_recipients() -> None:
 
     assert structured_result == {
         "result": [
-            {"id": "alice", "address": "alice@example.com"},
-            {"id": "bob", "address": "bob@example.com"},
+            {"id": "recipient_1", "address": "alice@example.com"},
+            {"id": "recipient_2", "address": "bob@example.com"},
         ]
     }
 
@@ -71,7 +69,7 @@ def test_server_audits_before_using_sender() -> None:
     sender = FakeSender()
     server = create_server(_policy(), lambda: sender)
     arguments: dict[str, Any] = {
-        "recipient_ids": ["bob"],
+        "recipient_ids": ["recipient_2"],
         "subject": "Hello",
         "body_text": "Plain body",
     }
