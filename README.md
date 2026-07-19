@@ -15,8 +15,9 @@ and any serialized message whose `From` or `To` addresses differ from the startu
 > `auth`. It covers SSH-tunneled OAuth, persistent `token.json` storage, automatic token refresh,
 > persistent environment configuration, and VPS-specific troubleshooting.
 
-The normal Desktop OAuth command expects a browser-accessible localhost callback. On a headless
-VPS, use the dedicated guide instead of assuming that `auth` can open a browser on the server.
+The default Desktop OAuth flow starts a localhost callback and attempts to open a browser. On a
+headless VPS, use the dedicated guide so the callback is carried through an SSH tunnel and the
+resulting token is stored directly on the server.
 
 ## Security guarantee and boundary
 
